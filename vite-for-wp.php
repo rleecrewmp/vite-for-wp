@@ -228,9 +228,14 @@ function load_development_asset( object $manifest, string $entry, array $options
 
 	// This is a development script, browsers shouldn't cache it.
 	// phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion
-	if ( ! wp_register_script( $options['handle'], $src, $dependencies, null, $options['in-footer'] ) ) {
-		return null;
-	}
+    
+    if ($options['module']) {
+        wp_register_script_module( $options['handle'], $src, $dependencies, null );
+    }
+
+	if ( ! $options['module'] && ! wp_register_script( $options['handle'], $src, $dependencies, null ) ) {
+        return null;
+    }
 
 	$assets = [
 		'scripts' => [ $options['handle'] ],
@@ -280,11 +285,13 @@ function load_production_asset( object $manifest, string $entry, array $options 
 	$src = "{$url}/{$item->file}";
 
 	if ( ! $options['css-only'] ) {
+        $scriptFunc = $options['module'] ? 'wp_register_script_module' : 'wp_register_script';
+
 		filter_script_tag( $options['handle'] );
 
 		// Don't worry about browser caching as the version is embedded in the file name.
 		// phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion
-		if ( wp_register_script( $options['handle'], $src, $options['dependencies'], null, $options['in-footer'] ) ) {
+		if ( $scriptFunc( $options['handle'], $src, $options['dependencies'], null, $options['in-footer'] ) ) {
 			$assets['scripts'][] = $options['handle'];
 		}
 	}
@@ -409,6 +416,8 @@ function register_asset( string $manifest_dir, string $entry, array $options ): 
  * @return bool
  */
 function enqueue_asset( string $manifest_dir, string $entry, array $options ): bool {
+    $options['module'] = $options['module'] ?? false;
+
 	$assets = register_asset( $manifest_dir, $entry, $options );
 
 	if ( is_null( $assets ) ) {
@@ -416,7 +425,7 @@ function enqueue_asset( string $manifest_dir, string $entry, array $options ): b
 	}
 
 	$map = [
-		'scripts' => 'wp_enqueue_script',
+		'scripts' => $options['module'] ? 'wp_enqueue_script_module' : 'wp_enqueue_script',
 		'styles' => 'wp_enqueue_style',
 	];
 
