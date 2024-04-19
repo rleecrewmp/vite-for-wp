@@ -291,9 +291,15 @@ function load_production_asset( object $manifest, string $entry, array $options 
 
 		// Don't worry about browser caching as the version is embedded in the file name.
 		// phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion
-		if ( $scriptFunc( $options['handle'], $src, $options['dependencies'], null, $options['in-footer'] ) ) {
+		if ( ! $options['module'] 
+            && wp_register_script( $options['handle'], $src, $options['dependencies'], null, $options['in-footer'] ) 
+        ) {
 			$assets['scripts'][] = $options['handle'];
-		}
+		} elseif ($options['module'] ) {
+            wp_register_script_module( $options['handle'], $src, $options['dependencies'], null );
+
+            $assets['scripts'][] = $options['handle'];
+        }
 	}
 
 	if ( ! empty( $item->css ) ) {
